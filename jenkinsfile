@@ -1,0 +1,65 @@
+pipeline {
+
+agent any
+
+environment {
+
+REGISTRY="localhost:5001"
+
+IMAGE="devops-app"
+
+}
+
+stages {
+
+stage('Git Checkout') {
+steps {
+git branch: 'dev',
+url: 'https://github.com/sujeetsrahate/DevOps-Assignment.git'
+}
+}
+
+stage('Sonar Scan') {
+steps {
+sh 'sonar-scanner'
+}
+}
+
+stage('Build Image') {
+steps {
+sh '''
+docker build -t $REGISTRY/$IMAGE:$BUILD_NUMBER app
+'''
+}
+}
+
+stage('Push Image') {
+steps {
+sh '''
+docker push $REGISTRY/$IMAGE:$BUILD_NUMBER
+'''
+}
+}
+
+stage('Update Manifest') {
+steps {
+sh '''
+sed -i "s|image:.*|image: localhost:5001/devops-app:$BUILD_NUMBER|" k8s/deployment.yaml
+'''
+}
+}
+
+}
+
+post {
+
+success {
+echo "Success"
+}
+
+failure {
+echo "Failed"
+}
+
+}
+}
